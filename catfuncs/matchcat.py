@@ -287,9 +287,12 @@ def matchcat(cat1, cat2, rmatch, dra2=0., ddec2=0., doplot=True):
     cat1.indmatch, cat1.nmatch, cat1.matchdx, cat1.matchdy = \
         match_coords(cat1.ra, cat1.dec, cat2.ra, cat2.dec,
                      rmatch, dra2, ddec2, doplot)
-    
-    cat1.mask = cat1.indmatch > -1
-    cat2.mask = cat1.indmatch[cat1.mask]
+
+    mask1 = cat1.indmatch > -1
+    mask2 = cat1.indmatch[mask1]
+
+    cat1.matchmask = mask1
+    cat2.matchmask = mask2
 
 
 # -----------------------------------------------------------------------
@@ -345,12 +348,6 @@ def find_match(catfile1, catfile2, rmatch, catformat1='ascii',
     # dec2 += 1.39e-4 temporary kludge for fixing Cl1604 matches
     
     """ Do the matching """
-    # cat1.indmatch,cat1.nmatch,cat1.matchdx,cat1.matchdy = \
-    #     match_coords(cat1.ra,cat1.dec,cat2.ra,cat2.dec, \
-    #                  rmatch,dra2,ddec2,doplot)
-    #
-    # cat1.mask = cat1.indmatch>-1
-    # cat2.mask = cat1.indmatch[cat1.mask]
     matchcat(cat1, cat2, rmatch, dra2=dra2, ddec2=ddec2, doplot=doplot)
     
     return cat1, cat2
@@ -388,13 +385,13 @@ def color_mag(cat1, cat2, magcol1, magcol2, lab1='mag1', lab2='mag2',
     
     """ Compute the color """
     if starsonly:
-        sm1 = cat1.starmask[cat1.mask]
-        sm2 = cat2.starmask[cat2.mask]
+        sm1 = cat1.starmask[cat1.matchmask]
+        sm2 = cat2.starmask[cat2.matchmask]
         mag1 = cat1.data[sm1][magcol1]
         mag2 = cat2.data[sm2][magcol2]
     else:
-        mag1 = cat1.data[cat1.mask][magcol1]
-        mag2 = cat2.data[cat2.mask][magcol2]
+        mag1 = cat1.data[cat1.matchmask][magcol1]
+        mag2 = cat2.data[cat2.matchmask][magcol2]
     
     """ Get rid of crazy points """
     mask = (mag1 < 35.) & (mag2 < 35.) & (mag1 > 5) & (mag2 > 5)
@@ -524,12 +521,12 @@ def write_matchcat(cat1, cat2, outfile, rmatch, c1fluxcol, c2fluxcol):
     c1id = n.arange(1, c1d.size+1)
     c1mi = cat1.indmatch.copy()
     ra1 = cat1.ra
-    dec1 = cat1.dec[cat1.mask]
-    ct1 = (n.arange(1, cat1.data.size+1))[cat1.mask]
-    c1m = cat1.data[cat1.mask]
-    c2m = cat2.data[cat2.mask]
-    dx = cat1.matchdx[cat1.mask]
-    dy = cat1.matchdy[cat1.mask]
+    dec1 = cat1.dec[cat1.matchmask]
+    ct1 = (n.arange(1, cat1.data.size+1))[cat1.matchmask]
+    c1m = cat1.data[cat1.matchmask]
+    c2m = cat2.data[cat2.matchmask]
+    dx = cat1.matchdx[cat1.matchmask]
+    dy = cat1.matchdy[cat1.matchmask]
     dpos = n.sqrt(dx**2 + dy**2)
     
     """ Write match info to output file """

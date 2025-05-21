@@ -33,6 +33,7 @@ pyversion = sys.version_info.major
 
 # ===========================================================================
 
+
 class ObjCat(Table):
 
     """
@@ -53,11 +54,11 @@ class ObjCat(Table):
     def __init__(self, incat, catformat='ldac', verbose=True, namecol=None,
                  racol=None, deccol=None, rafield=None, decfield=None,
                  usecols=False):
-       """
-       This method gets called when the user types something like
+        """
+        This method gets called when the user types something like
           cat = ObjCat(infile)
     
-       Inputs:
+        Inputs:
           incat     - input table data.  This can be in one of two forms:
                         1. a file containing the catalog (most common)
                         2. a Table instance containing the catalog data
@@ -72,45 +73,52 @@ class ObjCat(Table):
                        secat    -
                       NOTE: this parameter is not used if incat is a Table
                        rather than the name of an input file
-       """
+        """
     
-       """ Set a flag showing whether the file has been modified """
-       self.modified = False
+        """ Set up the empty ObjCat container by calling the superclass """
+        if pyversion == 2:
+            super(Table, self).__init__()
+        else:
+            super().__init__()
+
+        """ Set a flag showing whether the file has been modified """
+        self.modified = False
     
-       """ Set other default values """
-       self.ra = None
-       self.dec = None
-       self.radec = None
-       self.rafield = None
-       self.decfield = None
-       self.centpos = None
-       self.galmask = None
-       self.starmask = None
+        """ Set other default values """
+        self.ra = None
+        self.dec = None
+        self.radec = None
+        self.rafield = None
+        self.decfield = None
+        self.centpos = None
+        self.galmask = None
+        self.starmask = None
+        self.matchmask = None
     
-       """
-       Start by loading the catalog information
-       """
-       incattype = (str(type(incat))).split('.')[-1]
-       if incattype[0:3] == 'Tab' or incattype[0:4] == 'FITS':
-          self.data = incat.copy()
-          if rafield:
-             self.rafield = rafield
-          if decfield:
-             self.decfield = decfield
-          self.nrows = len(incat)
-          self.ncols = len(incat.columns)
-          self.catformat = 'Table'
+        """
+        Start by loading the catalog information
+        """
+        incattype = (str(type(incat))).split('.')[-1]
+        if incattype[0:3] == 'Tab' or incattype[0:4] == 'FITS':
+            self.data = incat.copy()
+            if rafield:
+               self.rafield = rafield
+            if decfield:
+               self.decfield = decfield
+            self.nrows = len(incat)
+            self.ncols = len(incat.columns)
+            self.catformat = 'Table'
     
-       elif isinstance(incat, str):
-          self.load_from_file(incat, catformat=catformat, verbose=verbose,
-                              namecol=namecol, racol=racol, deccol=deccol,
-                              rafield=rafield, decfield=decfield,
-                              usecols=usecols)
-       else:
-          print('')
-          print('ERROR: input catalog must either be a filename or a Table')
-          print(' Input catalog type is' + str(type(incat)))
-          print('')
+        elif isinstance(incat, str):
+            self.load_from_file(incat, catformat=catformat, verbose=verbose,
+                                namecol=namecol, racol=racol, deccol=deccol,
+                                rafield=rafield, decfield=decfield,
+                                usecols=usecols)
+        else:
+            print('')
+            print('ERROR: input catalog must either be a filename or a Table')
+            print(' Input catalog type is' + str(type(incat)))
+            print('')
 
     # ----------------------------------------------------------------------
     
