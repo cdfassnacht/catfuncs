@@ -109,6 +109,7 @@ def match_coords(ra1, dec1, ra2, dec2, rmatch, dra2=0., ddec2=0., doplot=True):
     mdec = decmatch[nmatch > 0]
     mdx0 = n.median(mdx)
     mdy0 = n.median(mdy)
+    print('')
     print(' Median offset for matches (RA):  %+6.2f arcsec' % mdx0)
     print(' Median offset for matches (Dec): %+6.2f arcsec' % mdy0)
     

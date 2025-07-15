@@ -318,7 +318,7 @@ class ObjCat(Table):
              self.galmask = objclass == 3
              self.starmask = objclass == 6
           else:
-             self.galmask = np.ones(dtype=bool)
+             self.galmask = np.ones(nrows, dtype=bool)
              self.starmask = None
           print('Read SDSS catalog from %s' % incat)
           print('Number of galaxies: %5d' % self.galmask.sum())
@@ -424,8 +424,8 @@ class ObjCat(Table):
        """ Make sure that values are in the correct range """
        self.ra = self.ra.astype(float)
        self.dec = self.dec.astype(float)
-       print(self.ra)
-       print(type(self.ra))
+       # print(self.ra)
+       # print(type(self.ra))
        ramask = (self.ra >= 0.) & (self.ra < 360.)
        decmask = (self.dec >= -90.) & (self.dec <= 90.)
        mask = (ramask) & (decmask)
