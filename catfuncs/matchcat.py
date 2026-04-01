@@ -472,13 +472,13 @@ def find_zp(datacat, photcat, magcol1, magcol2, lab1='mag_data',
         plt.xlim(10., 27.)
     if mdiff.max() > 20.:
         plt.ylim(-5., 5.)
-    if magmin > plt.xlim()[0] and magmin < plt.xlim()[1]:
+    if plt.xlim()[0] < magmin < plt.xlim()[1]:
         plt.axvline(magmin, color='r', lw=2)
-    if magmax > plt.xlim()[0] and magmax < plt.xlim()[1]:
+    if plt.xlim()[0] < magmax < plt.xlim()[1]:
         plt.axvline(magmax, color='r', lw=2)
-    if diffmin > plt.ylim()[0] and diffmin < plt.ylim()[1]:
+    if plt.ylim()[0] < diffmin < plt.ylim()[1]:
         plt.axhline(diffmin, color='r', lw=2)
-    if diffmax > plt.ylim()[0] and diffmax < plt.ylim()[1]:
+    if plt.ylim()[0] < diffmax < plt.ylim()[1]:
         plt.axhline(diffmax, color='r', lw=2)
     
     """ Get magnitude difference info """
