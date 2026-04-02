@@ -14,7 +14,7 @@ Top-level functions
                   is produced by catcomb.c
 """
 
-import numpy as n
+import numpy as np
 from math import sqrt
 from matplotlib import pyplot as plt
 from cdfutils import coords
@@ -38,6 +38,68 @@ from .objcat import ObjCat
 #      self.catfile2 = catfile2
 #
 #   """ TO BE CONTINUED """
+
+# ----------------------------------------------------------------------------
+
+def plot_offsets(mdx, mdy, mra, mdec, rmatch):
+    """
+
+    Produces diagnostic plots showing the astrometric offsets between the
+    matched objects in two catalogs
+
+    """
+
+    """ Get the median offsets """
+    mdx0 = np.median(mdx)
+    mdy0 = np.median(mdy)
+
+    """ Set up the plot window """
+    fig, ((ax1, ax2, ax5), (ax3, ax4, ax6)) = plt.subplots(2, 3)
+
+    """ Plot ddelta vs alpha """
+    ax1.scatter(mra, mdy)
+    ax1.tick_params(axis='x', labelbottom=False)
+    ax1.set_ylabel(r'$\Delta \delta$ (arcsec)')
+    ax1.axhline(0., color='r')
+
+    """ Plot dalpha vs alpha """
+    ax3.scatter(mra, mdx)
+    ax3.set_xlabel(r'$\alpha$')
+    ax3.set_ylabel(r'$\Delta \alpha$ (arcsec)')
+    ax3.axhline(0.0, color='r')
+
+    """ Plot ddelta vs delta """
+    ax2.scatter(mdec, mdy)
+    ax2.axhline(0.0, color='r')
+    ax2.tick_params(axis='x', labelbottom=False)
+    ax2.tick_params(axis='y', labelbottom=False)
+
+    """ Plot dalpha vs delta """
+    ax4.scatter(mdec, mdx)
+    ax4.set_xlabel(r'$\delta$')
+    ax4.axhline(0.0, color='r')
+    ax4.tick_params(axis='y', labelbottom=False)
+
+    # --------------------------------------------------
+
+    # fig2, (ax5, ax6) = plt.subplots(1, 2)
+    ax5.scatter(mdx, mdy)
+    ax5.set_aspect('equal', adjustable='box', anchor='C')
+    ax5.set_xlabel(r'$\Delta \alpha$ (arcsec)')
+    ax5.tick_params(axis='y', labelbottom=False)
+    # ax5.set_ylabel(r'$\Delta \delta$ (arcsec)')
+    # ax5.set_title('Offsets (rmatch = %5.2f)' % rmatch)
+    ax5.axvline(0.0, color='r')
+    ax5.axhline(0.0, color='r')
+    ax5.plot(np.array([mdx0]), np.array([mdy0]), 'r*', ms=20)
+    ax5.set_xlim(-1.1 * rmatch, 1.1 * rmatch)
+    ax5.set_ylim(-1.1 * rmatch, 1.1 * rmatch)
+
+    ax6.quiver(mra, mdec, mdx, mdy)
+
+
+    plt.show()
+
 
 # ----------------------------------------------------------------------------
 
@@ -73,16 +135,16 @@ def match_coords(ra1, dec1, ra2, dec2, rmatch, dra2=0., ddec2=0., doplot=True):
     print(' Catalog 2: %d coordinates' % len(ra2))
     
     """ Initialize containers for output information """
-    nmatch = n.zeros(len(ra1), dtype=int)
-    dxmatch = n.zeros(len(ra1))
-    dymatch = n.zeros(len(ra1))
-    ramatch = n.zeros(len(ra1))
-    decmatch = n.zeros(len(ra1))
-    indmatch = n.ones(len(ra1), dtype=int) * -1
+    nmatch = np.zeros(len(ra1), dtype=int)
+    dxmatch = np.zeros(len(ra1))
+    dymatch = np.zeros(len(ra1))
+    ramatch = np.zeros(len(ra1))
+    decmatch = np.zeros(len(ra1))
+    indmatch = np.ones(len(ra1), dtype=int) * -1
     
     """ Correct for known shifts """
     # dec2 += 1.39e-4 temporary kludge for fixing Cl1604 matches
-    ra2 = ra2.copy() + dra2/(3600.*n.cos(dec2))
+    ra2 = ra2.copy() + dra2/(3600.*np.cos(dec2))
     dec2 = dec2.copy() + ddec2/3600.
     
     """ Loop over catalog1 """
@@ -91,8 +153,8 @@ def match_coords(ra1, dec1, ra2, dec2, rmatch, dra2=0., ddec2=0., doplot=True):
     print('-----------------------------------------')
     for i in range(len(ra1)):
         dx, dy = coords.sky_to_darcsec(ra1[i], dec1[i], ra2, dec2)
-        dpos = n.sqrt(dx**2 + dy**2)
-        isort = n.argsort(dpos)
+        dpos = np.sqrt(dx**2 + dy**2)
+        isort = np.argsort(dpos)
         if dpos[isort[0]] <= rmatch:
             dxmatch[i] = dx[isort[0]]
             dymatch[i] = dy[isort[0]]
@@ -107,64 +169,25 @@ def match_coords(ra1, dec1, ra2, dec2, rmatch, dra2=0., ddec2=0., doplot=True):
     mdy = dymatch[nmatch > 0]
     mra = ramatch[nmatch > 0]
     mdec = decmatch[nmatch > 0]
-    mdx0 = n.median(mdx)
-    mdy0 = n.median(mdy)
+    mdx0 = np.median(mdx)
+    mdy0 = np.median(mdy)
     print('')
     print(' Median offset for matches (RA):  %+6.2f arcsec' % mdx0)
     print(' Median offset for matches (Dec): %+6.2f arcsec' % mdy0)
-    
+    mdaa = (np.polyfit(mra, mdx, 1))[0]
+    mdad = (np.polyfit(mdec, mdx, 1))[0]
+    mdda = (np.polyfit(mra, mdy, 1))[0]
+    mddd = (np.polyfit(mdec, mdy, 1))[0]
+    print('Slopes')
+    print('  dalpha vs alpha: %f' % mdaa)
+    print('  dalpha vs delta: %f' % mdad)
+    print('  ddelta vs alpha: %f' % mdda)
+    print('  ddelta vs delta: %f' % mddd)
+
     """ Plot up some offsets, if desired """
     if doplot:
-        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2)
-        # plt.figure(1)
-        #
-        #ax1 = plt.subplot(221)
-        # plt.scatter(mra, mdy)
-        # plt.setp(ax1.get_xticklabels(), visible=False)
-        # plt.ylabel(r'$\Delta \delta$ (arcsec)')
-        # plt.axhline(0.0, color='r')
-        ax1.scatter(mra, mdy)
-        ax1.tick_params(axis='x', labelbottom=False)
-        ax1.set_ylabel(r'$\Delta \delta$ (arcsec)')
-        ax1.axhline(0., color='r')
-        #
-        # ax2 = plt.subplot(223, sharex=ax1)
-        ax3.scatter(mra, mdx)
-        ax3.set_xlabel(r'$\alpha$')
-        ax3.set_ylabel(r'$\Delta \alpha$ (arcsec)')
-        ax3.axhline(0.0, color='r')
-        #
-        # ax3 = plt.subplot(222, sharey=ax1)
-        ax2.scatter(mdec, mdy)
-        ax2.axhline(0.0, color='r')
-        ax2.tick_params(axis='x', labelbottom=False)
-        ax2.tick_params(axis='y', labelbottom=False)
-        #
-        # ax4 = plt.subplot(224)
-        ax4.scatter(mdec, mdx)
-        ax4.set_xlabel(r'$\delta$')
-        ax4.axhline(0.0, color='r')
-        ax4.tick_params(axis='y', labelbottom=False)
+        plot_offsets(mdx, mdy, mra, mdec, rmatch)
 
-        # --------------------------------------------------
-
-        fig2, (ax5, ax6) = plt.subplots(1, 2)
-        # plt.figure(2)
-        ax5.scatter(mdx, mdy)
-        # plt.axis('scaled')
-        ax5.set_aspect('equal', adjustable='box', anchor='C')
-        ax5.set_xlabel(r'$\Delta \alpha$ (arcsec)')
-        ax5.set_ylabel(r'$\Delta \delta$ (arcsec)')
-        ax5.set_title('Offsets (rmatch = %5.2f)' % rmatch)
-        ax5.axvline(0.0, color='r')
-        ax5.axhline(0.0, color='r')
-        ax5.plot(n.array([mdx0]), n.array([mdy0]), 'r*', ms=20)
-        ax5.set_xlim(-1.1*rmatch, 1.1*rmatch)
-        ax5.set_ylim(-1.1*rmatch, 1.1*rmatch)
-
-        ax6.quiver(mra, mdec, mdx, mdy)
-        plt.show()
-    
     """ Clean up """
     # del ra1,dec1,ra2,dec2
     del ramatch, decmatch
@@ -196,12 +219,12 @@ def match_xy(x1, y1, x2, y2, rmatch, dx2=0., dy2=0., doplot=True):
     print(' Catalog 2: %d coordinates' % x2.size)
     
     """ Initialize containers for output information """
-    nmatch = n.zeros(x1.size, dtype=int)
-    dxmatch = n.zeros(x1.size)
-    dymatch = n.zeros(x1.size)
-    xmatch = n.zeros(x1.size)
-    ymatch = n.zeros(x1.size)
-    indmatch = n.ones(x1.size, dtype=int) * -1
+    nmatch = np.zeros(x1.size, dtype=int)
+    dxmatch = np.zeros(x1.size)
+    dymatch = np.zeros(x1.size)
+    xmatch = np.zeros(x1.size)
+    ymatch = np.zeros(x1.size)
+    indmatch = np.ones(x1.size, dtype=int) * -1
     
     """ Correct for known offsets """
     x2 = x2.copy() + dx2
@@ -214,8 +237,8 @@ def match_xy(x1, y1, x2, y2, rmatch, dx2=0., dy2=0., doplot=True):
     for i in range(x1.size):
         dx = x2 - x1[i]
         dy = y2 - y1[i]
-        dpos = n.sqrt(dx**2 + dy**2)
-        isort = n.argsort(dpos)
+        dpos = np.sqrt(dx**2 + dy**2)
+        isort = np.argsort(dpos)
         if dpos[isort[0]] <= rmatch:
             dxmatch[i] = dx[isort[0]]
             dymatch[i] = dy[isort[0]]
@@ -230,8 +253,8 @@ def match_xy(x1, y1, x2, y2, rmatch, dx2=0., dy2=0., doplot=True):
     mdy = dymatch[nmatch > 0]
     mx = xmatch[nmatch > 0]
     my = ymatch[nmatch > 0]
-    print(' Median offset for matches (X):  %+6.2f pixels' % n.median(mdx))
-    print(' Median offset for matches (Y): %+6.2f pixels' % n.median(mdy))
+    print(' Median offset for matches (X):  %+6.2f pixels' % np.median(mdx))
+    print(' Median offset for matches (Y): %+6.2f pixels' % np.median(mdy))
     
     """ Plot up some offsets, if desired """
     if doplot:
@@ -488,7 +511,7 @@ def find_zp(datacat, photcat, magcol1, magcol2, lab1='mag_data',
     print('N_sources %d' % mdiff.size)
     print('Range:    %6.3f to %6.3f' % (mdiff.min(), mdiff.max()))
     print('Mean:     %6.3f' % mdiff.mean())
-    print('Median:   %6.3f' % n.median(mdiff))
+    print('Median:   %6.3f' % np.median(mdiff))
     print('Sigma:    %6.3f' % mdiff.std())
     print('Sigma_mu: %6.3f' % (mdiff.std() / sqrt(mdiff.size)))
     
@@ -503,7 +526,7 @@ def find_zp(datacat, photcat, magcol1, magcol2, lab1='mag_data',
     print('N_sources %d' % diffgood.size)
     print('Range:    %6.3f to %6.3f' % (diffgood.min(), diffgood.max()))
     print('Mean:     %6.3f' % diffgood.mean())
-    print('Median:   %6.3f' % n.median(diffgood))
+    print('Median:   %6.3f' % np.median(diffgood))
     print('Sigma:    %6.3f' % diffgood.std())
     print('Sigma_mu: %6.3f' % (diffgood.std() / sqrt(diffgood.size)))
     print('')
@@ -527,16 +550,16 @@ def write_matchcat(cat1, cat2, outfile, rmatch, c1fluxcol, c2fluxcol):
     
     """ Get info on the matched objects """
     c1d = cat1.data
-    c1id = n.arange(1, c1d.size+1)
+    c1id = np.arange(1, c1d.size+1)
     c1mi = cat1.indmatch.copy()
     ra1 = cat1.ra
     dec1 = cat1.dec[cat1.matchmask]
-    ct1 = (n.arange(1, cat1.data.size+1))[cat1.matchmask]
+    ct1 = (np.arange(1, cat1.data.size+1))[cat1.matchmask]
     c1m = cat1.data[cat1.matchmask]
     c2m = cat2.data[cat2.matchmask]
     dx = cat1.matchdx[cat1.matchmask]
     dy = cat1.matchdy[cat1.matchmask]
-    dpos = n.sqrt(dx**2 + dy**2)
+    dpos = np.sqrt(dx**2 + dy**2)
     
     """ Write match info to output file """
     ofile = open(outfile, 'w')
@@ -550,7 +573,7 @@ def write_matchcat(cat1, cat2, outfile, rmatch, c1fluxcol, c2fluxcol):
             c2dat = cat2.data[c1mi[i]]
             ind2 = c2dat['f0']
             flux2 = c2dat['f%d' % c2fluxcol]
-            dpos = n.sqrt(cat1.matchdx[i]**2 + cat1.matchdy[i]**2)
+            dpos = np.sqrt(cat1.matchdx[i]**2 + cat1.matchdy[i]**2)
         else:
             ind2 = 0
             flux2 = 0.
