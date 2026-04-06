@@ -41,6 +41,7 @@ from .objcat import ObjCat
 
 # ----------------------------------------------------------------------------
 
+
 def plot_offsets(mdx, mdy, mra, mdec, rmatch):
     """
 
@@ -56,26 +57,26 @@ def plot_offsets(mdx, mdy, mra, mdec, rmatch):
     """ Set up the plot window """
     fig, ((ax1, ax2, ax5), (ax3, ax4, ax6)) = plt.subplots(2, 3)
 
-    """ Plot ddelta vs alpha """
-    ax1.scatter(mra, mdy)
+    """ Plot dalpha vs alpha """
+    ax1.scatter(mra, mdx)
     ax1.tick_params(axis='x', labelbottom=False)
-    ax1.set_ylabel(r'$\Delta \delta$ (arcsec)')
+    ax1.set_ylabel(r'$\Delta \alpha$ (arcsec)')
     ax1.axhline(0., color='r')
 
-    """ Plot dalpha vs alpha """
-    ax3.scatter(mra, mdx)
+    """ Plot ddelta vs alpha """
+    ax3.scatter(mra, mdy)
     ax3.set_xlabel(r'$\alpha$')
-    ax3.set_ylabel(r'$\Delta \alpha$ (arcsec)')
+    ax3.set_ylabel(r'$\Delta \delta$ (arcsec)')
     ax3.axhline(0.0, color='r')
 
-    """ Plot ddelta vs delta """
-    ax2.scatter(mdec, mdy)
+    """ Plot dalpha vs delta """
+    ax2.scatter(mdec, mdx)
     ax2.axhline(0.0, color='r')
     ax2.tick_params(axis='x', labelbottom=False)
     ax2.tick_params(axis='y', labelbottom=False)
 
-    """ Plot dalpha vs delta """
-    ax4.scatter(mdec, mdx)
+    """ Plot ddelta vs delta """
+    ax4.scatter(mdec, mdy)
     ax4.set_xlabel(r'$\delta$')
     ax4.axhline(0.0, color='r')
     ax4.tick_params(axis='y', labelbottom=False)
@@ -174,15 +175,19 @@ def match_coords(ra1, dec1, ra2, dec2, rmatch, dra2=0., ddec2=0., doplot=True):
     print('')
     print(' Median offset for matches (RA):  %+6.2f arcsec' % mdx0)
     print(' Median offset for matches (Dec): %+6.2f arcsec' % mdy0)
-    mdaa = (np.polyfit(mra, mdx, 1))[0]
-    mdad = (np.polyfit(mdec, mdx, 1))[0]
-    mdda = (np.polyfit(mra, mdy, 1))[0]
-    mddd = (np.polyfit(mdec, mdy, 1))[0]
+
+    """ Print some diagnostics """
+    mdaa = np.polyfit(mra, mdx, 1)
+    mdad = np.polyfit(mdec, mdx, 1)
+    mdda = np.polyfit(mra, mdy, 1)
+    mddd = np.polyfit(mdec, mdy, 1)
+    print(mdaa)
+    print(mdad)
     print('Slopes')
-    print('  dalpha vs alpha: %f' % mdaa)
-    print('  dalpha vs delta: %f' % mdad)
-    print('  ddelta vs alpha: %f' % mdda)
-    print('  ddelta vs delta: %f' % mddd)
+    print('  dalpha vs alpha: %f' % mdaa[0])
+    print('  dalpha vs delta: %f' % mdad[0])
+    print('  ddelta vs alpha: %f' % mdda[0])
+    print('  ddelta vs delta: %f' % mddd[0])
 
     """ Plot up some offsets, if desired """
     if doplot:
