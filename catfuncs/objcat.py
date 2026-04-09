@@ -72,16 +72,7 @@ class ObjCat(Table):
                        rather than the name of an input file
         """
     
-        """ Set up the empty ObjCat container by calling the superclass """
-        if pyversion == 2:
-            super(Table, self).__init__()
-        else:
-            super().__init__()
-
-        """ Set a flag showing whether the file has been modified """
-        self.modified = False
-    
-        """ Set other default values """
+        """ Set default values """
         self.ra = None
         self.dec = None
         self.radec = None
@@ -91,13 +82,12 @@ class ObjCat(Table):
         self.galmask = None
         self.starmask = None
         self.matchmask = None
-    
-        """
-        Start by loading the catalog information
-        """
+        self.modified = False
+
+        """ Loading the catalog information, depending on incat type """
         incattype = (str(type(incat))).split('.')[-1]
-        if incattype[0:3] == 'Tab' or incattype[0:4] == 'FITS':
-            self.data = incat.copy()
+        if isinstance(incat, (Table, pf.fitsrec.FITS_rec)):
+            intab = incat.copy()
             if rafield:
                 self.rafield = rafield
             if decfield:
@@ -107,15 +97,22 @@ class ObjCat(Table):
             self.catformat = 'Table'
     
         elif isinstance(incat, str):
-            self.load_from_file(incat, catformat=catformat, verbose=verbose,
-                                namecol=namecol, racol=racol, deccol=deccol,
-                                rafield=rafield, decfield=decfield,
-                                usecols=usecols)
+            intab = \
+                self.load_from_file(incat, catformat=catformat, verbose=verbose,
+                                    namecol=namecol, racol=racol, deccol=deccol,
+                                    rafield=rafield, decfield=decfield,
+                                    usecols=usecols)
         else:
             print('')
             print('ERROR: input catalog must either be a filename or a Table')
             print(' Input catalog type is' + str(type(incat)))
             print('')
+
+        """ Set up the ObjCat container by calling the superclass """
+        if pyversion == 2:
+            super(Table, self).__init__(intab)
+        else:
+            super().__init__(intab)
 
     # ----------------------------------------------------------------------
     
@@ -138,7 +135,7 @@ class ObjCat(Table):
         """ Read in catalog in a manner appropriate to the catformat """
         if catformat == 'secat':
             try:
-                self.data = ascii.read(incat)
+                intab = ascii.read(incat)
             except:
                 print("  ERROR. Problem in loading file %s" % incat)
                 print("  Check to make sure filename matches an existing file.")
@@ -148,20 +145,20 @@ class ObjCat(Table):
                 print('')
                 read_success = False
     
-            ncols = len(self.data.colnames)
-            nrows = len(self.data)
+            ncols = len(intab.colnames)
+            nrows = len(intab.data)
             """ Set the field names """
             self.rafield = 'ALPHA_J2000'
             self.decfield = 'DELTA_J2000'
           
         elif catformat == 'sext':
             try:
-                self.data = ascii.read(incat, guess=False, format='sextractor')
+                intab = ascii.read(incat, guess=False, format='sextractor')
             except:
                 raise ValueError('\nFormat set to "sext" but file is not in '
                                  'SExtractor ascii format\n')
-            ncols = len(self.data.colnames)
-            nrows = len(self.data)
+            ncols = len(intab.colnames)
+            nrows = len(intab)
             """ Set the field names """
             self.rafield = 'ALPHA_J2000'
             self.decfield = 'DELTA_J2000'
@@ -172,8 +169,8 @@ class ObjCat(Table):
             f.close()
             if foo[0] == '#':
                 try:
-                    self.data = ascii.read(incat, guess=False,
-                                           format='commented_header')
+                    intab = ascii.read(incat, guess=False,
+                                       format='commented_header')
                 except:
                     print('')
                     print('ERROR: Could not read data from %s' % incat)
@@ -183,7 +180,7 @@ class ObjCat(Table):
                     raise IOError
             else:
                 try:
-                    self.data = ascii.read(incat)
+                    intab = ascii.read(incat)
                 except:
                     print('')
                     print('ERROR: Could not properly read data from %s' % incat)
@@ -191,8 +188,8 @@ class ObjCat(Table):
                     print(' Please check input file.')
                     print('')
                     raise IOError
-            ncols = len(self.data.colnames)
-            nrows = len(self.data)
+            ncols = len(intab.colnames)
+            nrows = len(intab)
             """ Set the field names """
             if rafield:
                 self.rafield = rafield
@@ -219,8 +216,8 @@ class ObjCat(Table):
     
                 """ Actually read in the data """
                 self.informat = 'ascii'
-                self.data = np.loadtxt(incat, dtype=dt)
-                nrows = self.data.shape[0]
+                intab = np.loadtxt(incat, dtype=dt)
+                nrows = intab.shape[0]
     
                 """ Set the field names """
                 if racol is not None:
@@ -253,15 +250,15 @@ class ObjCat(Table):
     
         elif catformat.lower() == 'ldac' or read_success == False:
             try:
-                self.data = Table.read(incat, format='fits', hdu=2)
+                intab = Table.read(incat, format='fits', hdu=2)
             except:
                 print("  ERROR. Problem in loading file %s" % incat)
                 print("  Check to make sure filename matches an existing file.")
                 print('')
                 return
             self.informat = 'ldac'
-            nrows = len(self.data)
-            ncols = len(self.data.columns)
+            nrows = len(intab)
+            ncols = len(intab.columns)
     
             """ Set the field names """
             self.rafield = 'ALPHA_J2000'
@@ -269,15 +266,15 @@ class ObjCat(Table):
     
         elif catformat.lower() == 'csv' or read_success == False:
             try:
-                self.data = Table.read(incat)
+                intab = Table.read(incat)
             except:
                 print("  ERROR. Problem in loading file %s" % incat)
                 print("  Check to make sure filename matches an existing file.")
                 print('')
                 return
             self.informat = 'csv'
-            nrows = len(self.data)
-            ncols = len(self.data.columns)
+            nrows = len(intab)
+            ncols = len(intab.columns)
     
             """ Set the field names """
             self.rafield = 'raStack'
@@ -285,15 +282,15 @@ class ObjCat(Table):
     
         elif catformat.lower() == 'sdssfits' or read_success == False:
             try:
-                self.data = Table.read(incat, format='fits', hdu=1)
+                intab = Table.read(incat, format='fits', hdu=1)
             except:
                 print("  ERROR. Problem in loading file %s" % incat)
                 print("  Check to make sure filename matches an existing file.")
                 print('')
                 return
             self.informat = 'sdss'
-            nrows = len(self.data)
-            ncols = len(self.data.columns)
+            nrows = len(intab)
+            ncols = len(intab.columns)
     
             """ Set the field names """
             self.rafield = 'ra'
@@ -304,10 +301,10 @@ class ObjCat(Table):
             classification.
             In the SDSS scheme, type=3 is a galaxy and type=6 is a star
             """
-            if 'type' in self.data.colnames:
-                objclass = self.data['type']
-            elif 'type_r' in self.data.colnames:
-                objclass = self.data['type_r']
+            if 'type' in intab.colnames:
+                objclass = intab['type']
+            elif 'type_r' in intab.colnames:
+                objclass = intab['type_r']
             else:
                 objclass = None
     
@@ -340,6 +337,8 @@ class ObjCat(Table):
         self.catformat = catformat
         self.nrows = nrows
         self.ncols = ncols
+
+        return intab
        
     # ----------------------------------------------------------------------
     
@@ -378,7 +377,7 @@ class ObjCat(Table):
                     or 'MAG_AUTO'
         """
     
-        mag = self.data[magname].astype(float)
+        mag = self[magname].astype(float)
         if mfaint is None and mbright is None:
             self.magmask = np.ones(self.nrows, dtype=bool)
         elif mfaint is None:
@@ -403,18 +402,18 @@ class ObjCat(Table):
         self.dec = None
         if self.rafield is not None:
             try:
-                self.ra = self.data[self.rafield].copy()
+                self.ra = self[self.rafield].copy()
             except:
                 try:
-                    self.ra = self.data['x_world'].copy()
+                    self.ra = self['x_world'].copy()
                 except:
                     self.ra = None
         if self.decfield is not None:
             try:
-                self.dec = self.data[self.decfield].copy()
+                self.dec = self[self.decfield].copy()
             except:
                 try:
-                    self.dec = self.data['y_world'].copy()
+                    self.dec = self['y_world'].copy()
                 except:
                     self.dec = None
     
@@ -428,7 +427,7 @@ class ObjCat(Table):
         mask = ramask & decmask
         self.ra = self.ra[mask]
         self.dec = self.dec[mask]
-        self.data = self.data[mask]
+        self = self[mask]
        
         """ 
         Put data into a SkyCoords container for easy coordinate-based
@@ -523,10 +522,10 @@ class ObjCat(Table):
             offsets = None
         ind = np.argsort(sep.arcsec)
         if self.catformat == 'ascii':
-            self.data = self.data[ind, :]
+            self = self[ind, :]
         else:
             print(self.catformat)
-            self.data = self.data[ind]
+            self = self[ind]
     
         """ Also sort things that are outside the data table """
         self.radec = self.radec[ind]
@@ -569,14 +568,14 @@ class ObjCat(Table):
         if fluxcol is not None and fluxerrcol is not None:
             if self.informat == 'ldac':
                 if type(fluxcol) is int:
-                    flux = self.data.field(fluxcol)
-                    fluxerr = self.data.field(fluxerrcol)
+                    flux = self.field(fluxcol)
+                    fluxerr = self.field(fluxerrcol)
                 else:
-                    flux = self.data[fluxcol]
-                    fluxerr = self.data[fluxerrcol]
+                    flux = self[fluxcol]
+                    fluxerr = self[fluxerrcol]
             else:
-                flux = self.data['f%d' % fluxcol]
-                fluxerr = self.data['f%d' % fluxerrcol]
+                flux = self['f%d' % fluxcol]
+                fluxerr = self['f%d' % fluxerrcol]
             snr = flux / fluxerr
             snrmask = snr > snrgood
     
@@ -616,7 +615,7 @@ class ObjCat(Table):
     
         """ Add labels if requested """
         if labcol is not None:
-            lab = self.data[labcol][selmask]
+            lab = self[labcol][selmask]
             cosdec = np.cos(pi * self.dec[selmask] / 180.)
             xx = self.ra[selmask] + labdx * cosdec
             yy = self.dec[selmask] + labdy
@@ -642,8 +641,8 @@ class ObjCat(Table):
         """
     
         """ Set up the object name column """
-        ind = np.arange(len(self.data)) + 1
-        objname = np.zeros(len(self.data), dtype='U16')
+        ind = np.arange(len(self)) + 1
+        objname = np.zeros(len(self), dtype='U16')
         if objroot is not None:
             for i, obj in enumerate(ind):
                 objname[i] = '%s_%04d' % (objroot, obj)
@@ -654,7 +653,7 @@ class ObjCat(Table):
         """ Set up the output table """
         outnames = ['name', 'priority', 'mag', 'rahr', 'ramin', 'rasec', 'decdeg',
                     'decamin', 'decasec', 'epoch', 'equinox', 'pm_ra', 'pm_dec']
-        tmpgal = self.data[galmask]
+        tmpgal = self[galmask]
         radec = self.radec[galmask]
         pri = np.ones(len(tmpgal)) * 100
         tmpgal[magcol][tmpgal[magcol] < 0.] = 99.
@@ -666,7 +665,7 @@ class ObjCat(Table):
                        epoch, epoch, pm, pm], names=outnames)
     
         """ Set up the guidestar table """
-        tmpstar = self.data[starmask]
+        tmpstar = self[starmask]
         radec = self.radec[starmask]
         pri = np.ones(len(tmpstar)) * -1
         epoch = np.ones(len(tmpstar)) * 2000.
@@ -795,7 +794,7 @@ class ObjCat(Table):
             totstarmask = np.logical_and(starmask, starsonmask)
         else:
             totstarmask = starsonmask
-        stardata = self.data[smagcol].astype(float)
+        stardata = self[smagcol].astype(float)
         guidestarmask = totstarmask & (stardata >= smaglim[0]) & \
            (stardata <= smaglim[1])
     
@@ -832,14 +831,14 @@ class ObjCat(Table):
         """
     
         try:
-            fwhm = self.data[fwhmcol]
+            fwhm = self[fwhmcol]
         except KeyError:
             print('')
             print('Catalog does not contain a %d column' % fwhmcol)
             print('')
             return
         try:
-            mag = self.data[magcol]
+            mag = self[magcol]
         except KeyError:
             print('')
             print('Catalog does not contain a %d column' % magcol)
@@ -886,9 +885,9 @@ class ObjCat(Table):
                 print('')
                 return
             else:
-                mag = (self.data[self.starmask == False][magcol]).copy()
+                mag = (self[self.starmask == False][magcol]).copy()
         else:
-            mag = self.data[magcol].copy()
+            mag = self[magcol].copy()
     
         mag = mag[np.isfinite(mag)]
     
@@ -908,7 +907,7 @@ class ObjCat(Table):
     
         Given a list of ra,dec coordinates (ra2, dec2), possibly from a second
         catalog, and a match tolerance, find the matches to the catalog
-        contained in self.data
+        contained in self
     
         Inputs:
           ra2      - RA (decimal degrees) for catalog
@@ -1053,14 +1052,14 @@ class ObjCat(Table):
         yfield = 'f%d' % ycol
     
         for i in range(xast.size):
-            dx = xast[i] - self.data[xfield]
-            dy = yast[i] - self.data[yfield]
+            dx = xast[i] - self[xfield]
+            dy = yast[i] - self[yfield]
             dpos = dx**2 + dy**2
             sindex = np.argsort(dpos)
             self.matchind[i] = sindex[0]
     
-        self.matchdx = xast - self.data[xfield][self.matchind]
-        self.matchdy = yast - self.data[yfield][self.matchind]
+        self.matchdx = xast - self[xfield][self.matchind]
+        self.matchdy = yast - self[yfield][self.matchind]
     
     # ----------------------------------------------------------------------
     
@@ -1162,8 +1161,8 @@ class ObjCat(Table):
         xfield = 'f%d' % xcol
         yfield = 'f%d' % ycol
         self.astmask = astmask.copy()
-        self.matchx = self.data[xfield][self.matchind].copy()
-        self.matchy = self.data[yfield][self.matchind].copy()
+        self.matchx = self[xfield][self.matchind].copy()
+        self.matchy = self[yfield][self.matchind].copy()
         self.matchra = raa[self.goodmask].copy()
         self.matchdec = deca[self.goodmask].copy()
         self.matchdx = self.matchdx[self.goodmask]
