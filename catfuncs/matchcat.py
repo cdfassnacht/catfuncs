@@ -181,8 +181,8 @@ def match_coords(ra1, dec1, ra2, dec2, rmatch, dra2=0., ddec2=0., doplot=True):
     mdad = np.polyfit(mdec, mdx, 1)
     mdda = np.polyfit(mra, mdy, 1)
     mddd = np.polyfit(mdec, mdy, 1)
-    print(mdaa)
-    print(mdad)
+    # print(mdaa)
+    # print(mdad)
     print('Slopes')
     print('  dalpha vs alpha: %f' % mdaa[0])
     print('  dalpha vs delta: %f' % mdad[0])
@@ -367,7 +367,7 @@ def find_match(catfile1, catfile2, rmatch, catformat1='ascii',
                       deccol=deccol1, rafield=rafield1,
                       decfield=decfield1, namecol=namecol1)
         cat1.get_radec()
-    except:
+    except (ValueError, TypeError):
         print('')
         print('ERROR: Could not read RA and Dec from %s' % catfile1)
         return
@@ -376,7 +376,7 @@ def find_match(catfile1, catfile2, rmatch, catformat1='ascii',
                       deccol=deccol2, rafield=rafield2,
                       decfield=decfield2, namecol=namecol2)
         cat2.get_radec()
-    except:
+    except (ValueError, TypeError):
         print('')
         print('ERROR: Could not read RA and Dec from %s' % catfile2)
         return
@@ -424,11 +424,11 @@ def color_mag(cat1, cat2, magcol1, magcol2, lab1='mag1', lab2='mag2',
     if starsonly:
         sm1 = cat1.starmask[cat1.matchmask]
         sm2 = cat2.starmask[cat2.matchmask]
-        mag1 = cat1.data[sm1][magcol1]
-        mag2 = cat2.data[sm2][magcol2]
+        mag1 = cat1[sm1][magcol1]
+        mag2 = cat2[sm2][magcol2]
     else:
-        mag1 = cat1.data[cat1.matchmask][magcol1]
-        mag2 = cat2.data[cat2.matchmask][magcol2]
+        mag1 = cat1[cat1.matchmask][magcol1]
+        mag2 = cat2[cat2.matchmask][magcol2]
     
     """ Get rid of crazy points """
     mask = (mag1 < 35.) & (mag2 < 35.) & (mag1 > 5) & (mag2 > 5)
@@ -554,14 +554,14 @@ def write_matchcat(cat1, cat2, outfile, rmatch, c1fluxcol, c2fluxcol):
     """
     
     """ Get info on the matched objects """
-    c1d = cat1.data
+    c1d = cat1
     c1id = np.arange(1, c1d.size+1)
     c1mi = cat1.indmatch.copy()
     ra1 = cat1.ra
     dec1 = cat1.dec[cat1.matchmask]
-    ct1 = (np.arange(1, cat1.data.size+1))[cat1.matchmask]
-    c1m = cat1.data[cat1.matchmask]
-    c2m = cat2.data[cat2.matchmask]
+    ct1 = (np.arange(1, len(cat1)+1))[cat1.matchmask]
+    c1m = cat1[cat1.matchmask]
+    c2m = cat2[cat2.matchmask]
     dx = cat1.matchdx[cat1.matchmask]
     dy = cat1.matchdy[cat1.matchmask]
     dpos = np.sqrt(dx**2 + dy**2)
@@ -572,7 +572,7 @@ def write_matchcat(cat1, cat2, outfile, rmatch, c1fluxcol, c2fluxcol):
     # Need to fix format here to match matchcat.c
     #
     for i in range(cat1.ra.size):
-        c1dat = cat1.data[i]
+        c1dat = cat1[i]
         c1flux = c1dat['f%d' % c1fluxcol]
         if c1mi[i] > -1:
             c2dat = cat2.data[c1mi[i]]

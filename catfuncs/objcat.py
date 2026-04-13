@@ -282,7 +282,7 @@ class ObjCat(Table):
     
         elif catformat.lower() == 'sdssfits' or read_success == False:
             try:
-                intab = Table.read(incat, format='fits', hdu=1)
+                intab = Table.read(incat)
             except:
                 print("  ERROR. Problem in loading file %s" % incat)
                 print("  Check to make sure filename matches an existing file.")
@@ -424,10 +424,15 @@ class ObjCat(Table):
         # print(type(self.ra))
         ramask = (self.ra >= 0.) & (self.ra < 360.)
         decmask = (self.dec >= -90.) & (self.dec <= 90.)
-        mask = ramask & decmask
-        self.ra = self.ra[mask]
-        self.dec = self.dec[mask]
-        self = self[mask]
+        badradec = False
+        if ramask.sum() < self.nrows:
+            print('ERROR: Found RA value(s) outside range 0-360 degrees')
+            badradec = True
+        if decmask.sum() > self.nrows:
+            print('ERROR: Found Dec value(s) outside range -90 to +90 degrees')
+            badradec = True
+        if badradec:
+            raise ValueError
        
         """ 
         Put data into a SkyCoords container for easy coordinate-based
